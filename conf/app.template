@@ -1,0 +1,59 @@
+#配置文件模板，配置完成后请将此文件名后缀template改为conf
+
+appname = dgatewayWebBrowser
+httpport = 8080
+runmode = dev
+autorender = false
+copyrequestbody = true
+EnableDocs = true
+# 进程内监控
+EnableAdmin = true
+AdminAddr = "localhost"
+AdminPort = 8088
+
+#dgateway节点地址
+chainurl = "http://user:password@ip:port"
+dgatewayContractAddress = "0xxxx..."
+chainScanHeight = 0
+
+#数据服务获取法币价格
+dataurl = "http://ip:port"
+
+#mysql
+#时区问题,添加loc=Local，设置为本地时间
+mysqlurl = "user:passwd@tcp(ip:port)/dbname?charset=utf8&loc=Local"
+mysqlmaxidleconns = 500
+mysqlmaxopenconns = 500
+
+#redis
+redisAddr = "ip:port"
+redisMaster = ""
+redisDatabase = 10
+redisAuth = ""
+redisPushKey = ""
+
+
+
+#elasticsearch
+elasticsearchurl = "http://ip:port"
+elasticsearchbchindex = "alias1;alias2" 
+elasticsearchbtcindex = "alias1;alias2"
+
+#btc/bch全节点
+btc_rpc_server="ip:port"
+btc_rpc_user=""
+btc_rpc_password=""
+
+bch_rpc_server="ip:port"
+bch_rpc_user=""
+bch_rpc_password=""
+
+net_param="regtest"
+
+
+#ETH全节点
+ethurl = "http://ip:port"
+
+#是否允许跨域
+allowcors = true
+alloworigin = "http://localhost:*"
