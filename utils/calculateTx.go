@@ -11,25 +11,31 @@ import (
 	"github.com/astaxie/beego/toolbox"
 )
 
-//CalculateTxDataDaily :Get tx statistics of yesterday
+//CalculateTxDataDaily :Get tx statistics of last hour
 func CalculateTxDataDaily() {
-	tk := toolbox.NewTask("txdailydata", "30 0 0 * *", calcTxstatics)
-	//tk := toolbox.NewTask("txdailydata", "*/5 * * * *", calcTxstatics)
+	// calc every 10 min
+	tk := toolbox.NewTask("txdailydata", "30 */10 * * * *", calcTxstatics)
 	toolbox.AddTask("tk", tk)
 	toolbox.StartTask()
 	defer toolbox.StopTask()
-
 }
 
 //amount的单位锚定,根据token_code来确定
 var calcTxstatics = toolbox.TaskFunc(func() error {
 	//获取昨日开始和结束时间戳
-	beego.Info("calculate daily statistics start!!!")
-	timeStr := time.Now().Format("2006-01-02")
-	timeBase, _ := time.ParseInLocation("2006-01-02 15:04:05", timeStr+" 00:00:00", time.Local)
-	//包含时区信息
-	startTime := timeBase.AddDate(0, 0, -1).Unix()
-	endTime := timeBase.Unix()
+	beego.Info("calculate tx statistics every 10 minutes start!!!")
+	/*
+		timeStr := time.Now().Format("2006-01-02")
+		timeBase, _ := time.ParseInLocation("2006-01-02 15:04:05", timeStr+" 00:00:00", time.Local)
+		//包含时区信息
+		startTime := timeBase.AddDate(0, 0, -1).Unix()
+		endTime := timeBase.Unix()
+	*/
+
+	//change to calc every 10 min.
+	timeNow := time.Now()
+	startTime, endTime := getTenMinuteDuration(timeNow)
+	beego.Info("calc starttime: ", startTime, "calc endtime: ", endTime)
 
 	distinctToken, err := dboperation.GetDailyDistinctToken(startTime, endTime)
 	if err != nil {
@@ -37,10 +43,12 @@ var calcTxstatics = toolbox.TaskFunc(func() error {
 	}
 
 	for _, token := range distinctToken {
+		fmt.Println("token:", token)
 		if token == "" {
 			continue
 		}
 		tokenInfo, err := dboperation.GetTokenInfoBySymbol(token)
+		fmt.Printf("token_info, %+v", tokenInfo)
 		if err != nil {
 			continue
 		}
@@ -66,11 +74,21 @@ var calcTxstatics = toolbox.TaskFunc(func() error {
 			currencySymbol = tokenInfo.Symbol
 			currencyDecimals = tokenInfo.Decimals
 		}
-		price := chainapi.GetTokenCurrencyPrice(currencySymbol, "CNY")
-		currencyAmount := price * float64(tokenAmount) / float64(power(currencyDecimals))
+		currencyAmount := float64(0)
+		if tokenInfo.Chain == "eos" && tokenInfo.Symbol == "XIN" {
+			//get USDToCNYPrice, not a good practice
+			USDprice := chainapi.GetTokenCurrencyPrice("BTC", "USD")
+			CNYPrice := chainapi.GetTokenCurrencyPrice("BTC", "CNY")
+			USDToCNYPrice := CNYPrice / USDprice
+			//eos XIN coin's exchange rate: 1USD: 1000XIN
+			currencyAmount = float64(tokenAmount) / 1000 * USDToCNYPrice
+		} else {
+			price := chainapi.GetTokenCurrencyPrice(currencySymbol, "CNY")
+			currencyAmount = price * float64(tokenAmount) / float64(power(currencyDecimals))
+		}
 		//新增数据
-		time := timeBase.AddDate(0, 0, -1)
-		fmt.Println(currencySymbol, count, price, tokenAmount, currencyAmount)
+		time := time.Unix(startTime, 0)
+		fmt.Println("token calc:", time, tokenAmount, count, tokenSymbol, currencyAmount)
 		err = dboperation.StoreTxStatisticToMysql(time, tokenAmount, count, tokenSymbol, currencyAmount)
 		if err != nil {
 			return err
@@ -85,4 +103,20 @@ func power(n int) int64 {
 		result *= 10
 	}
 	return result
+}
+
+func getTenMinuteDuration(timeNow time.Time) (start, end int64) {
+	minute := (timeNow.Minute() / 10 * 10)
+	endTime := time.Date(
+		timeNow.Year(),
+		timeNow.Month(),
+		timeNow.Day(),
+		timeNow.Hour(),
+		minute,
+		0,
+		0,
+		time.Local,
+	)
+	startTime := endTime.Add(-10 * time.Minute)
+	return startTime.Unix(), endTime.Unix()
 }

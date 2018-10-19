@@ -7,28 +7,27 @@ import sys
 import pymysql
 import requests
 
+DATA_URL = "http://ip:port/api/custom/current/price_to_currency"
+SQL_HOST = ""
+SQL_USER = ""
+SQL_PASSWD = ""
+SQL_DB = ""
 
 conn = pymysql.connect(
-    host="", 
-    user="", 
-    password="", 
-    database="", 
+    host= SQL_HOST, 
+    user=SQL_USER, 
+    password=SQL_PASSWD, 
+    database=SQL_DB, 
     charset="utf8")
 cursor = conn.cursor()
-
-def get_yesterday_timestamp_unix():
-    """获取昨日时间unix戳"""
-    today = datetime.date.today()
-    yesterday = today - datetime.timedelta(days=1)
-    yesterday_start_time = int(time.mktime(time.strptime(str(yesterday), "%Y-%m-%d")))
-    today_start_time = int(time.mktime(time.strptime(str(today), "%Y-%m-%d")))
-    return yesterday_start_time, today_start_time
 
 def calc_tx_amount_count(start_time, end_time):
     """计算昨日交易总金额"""
     while start_time < end_time:
         time1 = start_time.timestamp()
-        time2 = (start_time + timedelta(days=1)).timestamp()
+        # every 10 Min
+        time2 = (start_time + timedelta(minutes=10)).timestamp()
+        print("calc time duration:", time1, time2)
         sql1 = "select distinct token_symbol from dgateway_tx where time >= {} and time < {}".format(time1, time2)
 
         cursor.execute(sql1)
@@ -36,7 +35,6 @@ def calc_tx_amount_count(start_time, end_time):
         for i in ret:
             if i[0] == '':
                 continue
-
             #获取amount
             sql2 = "select sum(amount) from dgateway_tx where time >= {} and time < {} and token_symbol = '{}'".format(time1, time2, i[0])
             cursor.execute(sql2)
@@ -60,11 +58,19 @@ def calc_tx_amount_count(start_time, end_time):
                 token_info = cursor.fetchone()
                 symbol = token_info[0]
                 decimals = token_info[1]
-            price = get_currency_price(symbol, "CNY")
-            currency_amount = int(float(price) * float(amount) / (10 ** float(decimals)))
+
+            if token_info[0] == "eos" and token_info[1] == "XIN":
+                usd_price = get_currency_price("BTC", "USD")
+                cny_price = get_currency_price("BTC", "CNY")
+                # eos私链的XIN币和美元的兑换比例是1000：1
+                currency_amount = int(float(amount) * (cny_price / usd_price) / 1000)
+            else: 
+                price = get_currency_price(symbol, "CNY")
+                currency_amount = int(float(price) * float(amount) / (10 ** float(decimals)))
         
             #新增数据
-            time = start_time.strftime("%Y-%m-%d")
+            time = start_time.strftime("%Y-%m-%d %H:%M:%S")
+            print("time", time, "amount:", amount, "count:", count, "symbol:", i[0], "currency_amount:", currency_amount)
             sql4 = "insert into dgateway_tx_statistics (time, amount, count, symbol, currency_amount) values ('{}', {}, {}, '{}', {})".format(
                 time, amount, count, i[0], currency_amount)
             try:
@@ -73,7 +79,7 @@ def calc_tx_amount_count(start_time, end_time):
             except Exception as err:
                 print("insert into mysql, err:{}".format(err))
                 conn.rollback()
-        start_time = start_time + timedelta(days=1)
+        start_time = start_time + timedelta(minutes=10)
 
 
 def get_currency_price(symbol, unit):
@@ -83,7 +89,7 @@ def get_currency_price(symbol, unit):
         "unit": unit
     }
     #数据服务地址
-    url = "http://ip:port/api/custom/current/price_to_currency"
+    url =  DATA_URL
     try:
         res = requests.post(url=url, json=params)
         price = res.json()['price']

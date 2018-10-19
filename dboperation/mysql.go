@@ -437,18 +437,44 @@ func StoreTxStatisticToMysql(time time.Time, amount, count int64, symbol string,
 		Symbol:         symbol,
 		CurrencyAmount: currencyAmount,
 	}
-	err := o.Begin()
-	if err != nil {
-		beego.Error(err)
-		return err
+	//check exist
+	exist := false
+	txStat := datastruct.DgatewayTxStatistics{Time: time, Symbol: symbol}
+	err := o.Read(&txStat, "Time", "Symbol")
+	if err == nil {
+		exist = true
 	}
-	_, err1 := o.Insert(&newTxStatistic)
-	if err1 != nil {
-		beego.Error(err)
-		o.Rollback()
-		return err1
+	beego.Debug("tx stat exist in mysql:", exist, "time:", time, "symbol:", symbol)
+	if exist {
+		//update
+		newTxStatistic.Id = txStat.Id
+		err := o.Begin()
+		if err != nil {
+			beego.Error(err)
+			return err
+		}
+		_, err1 := o.Update(&newTxStatistic)
+		if err1 != nil {
+			beego.Error(err1)
+			o.Rollback()
+			return err1
+		}
+		o.Commit()
+		return nil
+	} else {
+		//insert
+		err := o.Begin()
+		if err != nil {
+			beego.Error(err)
+			return err
+		}
+		_, err1 := o.Insert(&newTxStatistic)
+		if err1 != nil {
+			beego.Error(err)
+			o.Rollback()
+			return err1
+		}
+		o.Commit()
+		return nil
 	}
-	o.Commit()
-	return nil
-
 }

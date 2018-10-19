@@ -38,6 +38,7 @@ redisPushKey = ""
 elasticsearchurl = "http://ip:port"
 elasticsearchbchindex = "alias1;alias2" 
 elasticsearchbtcindex = "alias1;alias2"
+elasticsearch_eos_xin_index = "alias"
 
 #btc/bch全节点
 btc_rpc_server="ip:port"

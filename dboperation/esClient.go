@@ -45,6 +45,37 @@ type VoutInfo struct {
 	PkScript      string `json:"pk_script"`
 }
 
+//EOS tx
+type EosTx struct {
+	BlockNum       uint32 `json:"block_num"`
+	BlockID        string `json:"block_id"`
+	BlockTimeStamp int64  `json:"block_timestamp"`
+	Producer       string `json:"producer"`
+	TxID           string `json:"tx_id"`
+	Status         string `json:"status"`
+	//CpuUsageUs uint32
+	//NetUsageWords eos.Varuint32
+	Expiration     int64    `json:"expiration"`
+	RefBlockNum    uint16   `json:"ref_block_num"`
+	RefBlockPrefix uint32   `json:"ref_block_prefix"`
+	DelaySec       uint32   `json:"delay_sec"`
+	Actions        []Action `json:"actions"`
+}
+
+// EOS tx Action
+type Action struct {
+	Account string          `json:"account"`
+	Name    string          `json:"name"`
+	Data    json.RawMessage `json:"data"`
+}
+
+// destorytoken method params
+type DestoryTokenParams struct {
+	User   string `json:"user"`
+	Amount uint32 `json:"amount"`
+	Memo   string `json:"memo"`
+}
+
 type EsClient struct {
 	sync.Mutex
 	client *elastic.Client
@@ -171,4 +202,49 @@ func (ec *EsClient) GetUtxoInfoByKey(value string, coinType string, key string) 
 	scroller.Clear(ec.ctx)
 
 	return utxoList
+}
+
+//GetEosDestoryTokenTxFrom query certain destoryTokenTx of EOS
+func (ec *EsClient) GetEosDestoryTokenTxFrom(txHash string) (string, error) {
+	eosTx, err := ec.getEosXinTxByHash(txHash)
+	if err != nil {
+		return "", err
+	}
+	addrList := []string{}
+	for _, action := range eosTx.Actions {
+		if action.Name == "destroytoken" {
+			destoryTokenParams := &DestoryTokenParams{}
+			err := json.Unmarshal(action.Data, destoryTokenParams)
+			if err != nil {
+				beego.Error(err)
+				continue
+			}
+			addrList = append(addrList, destoryTokenParams.User)
+		}
+	}
+	return strings.Join(addrList, ","), nil
+}
+
+func (ec *EsClient) getEosXinTxByHash(txHash string) (*EosTx, error) {
+	idsQuery := elastic.NewMatchQuery("tx_id", txHash)
+	index := beego.AppConfig.String("elasticsearch_eos_xin_index")
+	searchResults, err := ec.client.Search().
+		Index(index).
+		Query(idsQuery).
+		Pretty(true).
+		Do(ec.ctx)
+	if err != nil {
+		beego.Error(err)
+		return nil, err
+	}
+	if searchResults.Hits.TotalHits > 0 {
+		var out EosTx
+		err := json.Unmarshal(*searchResults.Hits.Hits[0].Source, &out)
+		if err != nil {
+			beego.Error(err)
+			return nil, err
+		}
+		return &out, nil
+	}
+	return nil, fmt.Errorf("No Results:", txHash)
 }

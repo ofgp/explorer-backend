@@ -116,14 +116,16 @@ func sendTxMessage(txInfo *datastruct.DgatewayTx) bool {
 	return true
 }
 
-//首页图表信息(15天)
+//首页图表信息(今天及往前推15天)
 func GetInfoTableData() (*datastruct.InfoTableResp, error) {
 
 	timeNow := time.Now() //获取当前时间
 	zeroHour := time.Date(timeNow.Year(), timeNow.Month(), timeNow.Day(), 0, 0, 0, 0, timeNow.Location())
 	//获取下一个零时
 	startTime := zeroHour.AddDate(0, 0, -15)
-	endTime := zeroHour.AddDate(0, 0, -1)
+
+	//endTime := zeroHour.AddDate(0, 0, -1)
+	endTime := timeNow
 
 	data, err := dboperation.GetInfoDataFromMysql(startTime, endTime)
 	if err != nil {
@@ -132,17 +134,19 @@ func GetInfoTableData() (*datastruct.InfoTableResp, error) {
 	var timeinfo []time.Time
 	timeCount := make(map[time.Time]int64)
 	timeAmount := make(map[time.Time]float64)
-	for i := -15; i < 0; i++ {
+	for i := -15; i <= 0; i++ {
 		before := zeroHour.AddDate(0, 0, i)
 		timeinfo = append(timeinfo, before)
 		timeCount[before] = 0
 		timeAmount[before] = 0
 
 	}
-	//amount目前的判断逻辑：from_chain 和to_chain，哪个不是eth，就是哪一个。。
+
 	for _, d := range data {
-		timeCount[d.Time] += d.Count
-		timeAmount[d.Time] += d.CurrencyAmount
+		//归类数据到数据产生的日期(year, month, day)
+		actualDay := time.Date(d.Time.Year(), d.Time.Month(), d.Time.Day(), 0, 0, 0, 0, d.Time.Location())
+		timeCount[actualDay] += d.Count
+		timeAmount[actualDay] += d.CurrencyAmount
 	}
 	date := []string{}
 	count := []int64{}

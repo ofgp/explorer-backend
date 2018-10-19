@@ -129,6 +129,8 @@ func (cw *ChainWatcher) processBlockData(blockData *datastruct.SingleBlockResp) 
 		if tx.To == "btc" || tx.To == "bch" {
 			toFee, _ = cw.esClient.GetBtcTxFee(tx.ToTxHash, tx.To)
 
+		} else if tx.To == "eos" {
+			toFee = 0
 		} else {
 			toFee, _ = chainapi.GetEthMinerFee(tx.ToTxHash)
 		}
@@ -137,6 +139,8 @@ func (cw *ChainWatcher) processBlockData(blockData *datastruct.SingleBlockResp) 
 		if tx.From == "btc" || tx.From == "bch" {
 			fromFee, _ = cw.esClient.GetBtcTxFee(tx.FromTxHash, tx.From)
 
+		} else if tx.From == "eos" {
+			fromFee = 0
 		} else {
 			fromFee, _ = chainapi.GetEthMinerFee(tx.FromTxHash)
 		}
@@ -145,6 +149,9 @@ func (cw *ChainWatcher) processBlockData(blockData *datastruct.SingleBlockResp) 
 		fromAddrString := ""
 		if tx.From == "btc" || tx.From == "bch" {
 			fromAddrString, _ = cw.esClient.GetBtcTxFrom(tx.FromTxHash, tx.From)
+		} else if tx.From == "eos" {
+			// xinplayer的熔币交易，方法名为destorytoken
+			fromAddrString, _ = cw.esClient.GetEosDestoryTokenTxFrom(tx.FromTxHash)
 		} else {
 			fromAddrString, _ = chainapi.GetEthTxFrom(tx.FromTxHash)
 		}
@@ -190,6 +197,7 @@ func (cw *ChainWatcher) processBlockData(blockData *datastruct.SingleBlockResp) 
 
 //根据交易信息获取amount对应的token symbol 和decimals,
 //如果eth的token信息获取不到，则从链上抓取，并且更新到mysql
+//bch对应主链:token_code, eos,eth对应侧链: app_code
 func getTokenSymbolAndDecimals(tx datastruct.Transaction, chain string) (string, int) {
 	if chain == "from" {
 		if tx.From == "eth" {
@@ -201,6 +209,12 @@ func getTokenSymbolAndDecimals(tx datastruct.Transaction, chain string) (string,
 			} else {
 				return tokenInfo.Symbol, tokenInfo.Decimals
 			}
+		} else if tx.From == "eos" {
+			tokenInfo, err := dboperation.GetTokenInfo(tx.From, tx.AppCode)
+			if err != nil {
+				panic("get token info failed")
+			}
+			return tokenInfo.Symbol, tokenInfo.Decimals
 		} else {
 			tokenInfo, err := dboperation.GetTokenInfo(tx.From, tx.TokenCode)
 			if err != nil {
@@ -218,6 +232,12 @@ func getTokenSymbolAndDecimals(tx datastruct.Transaction, chain string) (string,
 			} else {
 				return tokenInfo.Symbol, tokenInfo.Decimals
 			}
+		} else if tx.To == "eos" {
+			tokenInfo, err := dboperation.GetTokenInfo(tx.To, tx.AppCode)
+			if err != nil {
+				panic("get token info failed")
+			}
+			return tokenInfo.Symbol, tokenInfo.Decimals
 		} else {
 			tokenInfo, err := dboperation.GetTokenInfo(tx.To, tx.TokenCode)
 			if err != nil {
