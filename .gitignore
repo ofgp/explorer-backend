@@ -4,3 +4,5 @@ conf/app.conf
 .vscode
 dgatewayWebBrowser
 lastupdate.tmp
+.drone.yml
+Dockerfile
