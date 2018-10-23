@@ -129,7 +129,7 @@ func (cw *ChainWatcher) processBlockData(blockData *datastruct.SingleBlockResp) 
 		if tx.To == "btc" || tx.To == "bch" {
 			toFee, _ = cw.esClient.GetBtcTxFee(tx.ToTxHash, tx.To)
 
-		} else if tx.To == "eos" {
+		} else if tx.To == "eos" || tx.To == "xin" {
 			toFee = 0
 		} else {
 			toFee, _ = chainapi.GetEthMinerFee(tx.ToTxHash)
@@ -139,7 +139,7 @@ func (cw *ChainWatcher) processBlockData(blockData *datastruct.SingleBlockResp) 
 		if tx.From == "btc" || tx.From == "bch" {
 			fromFee, _ = cw.esClient.GetBtcTxFee(tx.FromTxHash, tx.From)
 
-		} else if tx.From == "eos" {
+		} else if tx.From == "eos" || tx.From == "xin" {
 			fromFee = 0
 		} else {
 			fromFee, _ = chainapi.GetEthMinerFee(tx.FromTxHash)
@@ -149,7 +149,7 @@ func (cw *ChainWatcher) processBlockData(blockData *datastruct.SingleBlockResp) 
 		fromAddrString := ""
 		if tx.From == "btc" || tx.From == "bch" {
 			fromAddrString, _ = cw.esClient.GetBtcTxFrom(tx.FromTxHash, tx.From)
-		} else if tx.From == "eos" {
+		} else if tx.From == "eos" || tx.From == "xin" {
 			// xinplayer的熔币交易，方法名为destorytoken
 			fromAddrString, _ = cw.esClient.GetEosDestoryTokenTxFrom(tx.FromTxHash)
 		} else {
@@ -209,7 +209,7 @@ func getTokenSymbolAndDecimals(tx datastruct.Transaction, chain string) (string,
 			} else {
 				return tokenInfo.Symbol, tokenInfo.Decimals
 			}
-		} else if tx.From == "eos" {
+		} else if tx.From == "eos" || tx.From == "xin" {
 			tokenInfo, err := dboperation.GetTokenInfo(tx.From, tx.AppCode)
 			if err != nil {
 				panic("get token info failed")
@@ -232,7 +232,7 @@ func getTokenSymbolAndDecimals(tx datastruct.Transaction, chain string) (string,
 			} else {
 				return tokenInfo.Symbol, tokenInfo.Decimals
 			}
-		} else if tx.To == "eos" {
+		} else if tx.To == "eos" || tx.To == "xin" {
 			tokenInfo, err := dboperation.GetTokenInfo(tx.To, tx.AppCode)
 			if err != nil {
 				panic("get token info failed")
