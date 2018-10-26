@@ -56,5 +56,4 @@ net_param="regtest"
 ethurl = "http://ip:port"
 
 #是否允许跨域
-allowcors = true
-alloworigin = "http://localhost:*"
+allow_origins = "http://localhost:*;http://ip:port"

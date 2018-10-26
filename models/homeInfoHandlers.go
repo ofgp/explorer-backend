@@ -4,6 +4,7 @@ import (
 	"dgatewayWebBrowser/chainapi"
 	"dgatewayWebBrowser/datastruct"
 	"dgatewayWebBrowser/dboperation"
+	"dgatewayWebBrowser/utils"
 	"strconv"
 	"time"
 
@@ -151,6 +152,8 @@ func GetInfoTableData() (*datastruct.InfoTableResp, error) {
 	date := []string{}
 	count := []int64{}
 	amount := []float64{}
+	amountUSD := []float64{}
+	exchangeRate := utils.CNYToUSD()
 	for _, info := range timeinfo {
 		month := strconv.Itoa(int(info.Month()))
 		day := strconv.Itoa(info.Day())
@@ -158,12 +161,13 @@ func GetInfoTableData() (*datastruct.InfoTableResp, error) {
 		date = append(date, infoString)
 		count = append(count, timeCount[info])
 		amount = append(amount, timeAmount[info])
+		amountUSD = append(amountUSD, timeAmount[info]*exchangeRate)
 
 	}
 	return &datastruct.InfoTableResp{
 		Code: 0,
 		Msg:  "",
-		Data: map[string]interface{}{"time": date, "count": count, "amount": amount},
+		Data: map[string]interface{}{"time": date, "count": count, "amount": amount, "amount_usd": amountUSD},
 	}, nil
 }
 
