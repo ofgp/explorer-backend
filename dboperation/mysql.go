@@ -339,7 +339,8 @@ func GetBlockTxFromMysql(height string) ([]datastruct.DgatewayTx, error) {
 func GetInfoDataFromMysql(startTime, endTime time.Time) ([]datastruct.DgatewayTxStatistics, error) {
 	o := orm.NewOrm()
 	var info []datastruct.DgatewayTxStatistics
-	_, err := o.QueryTable("dgateway_tx_statistics").Filter("time__gte", startTime).Filter("time__lte", endTime).All(&info)
+	_, err := o.Raw("SELECT * FROM dgateway_tx_statistics where time >= ? and time <= ?", startTime, endTime).QueryRows(&info)
+	//_, err := o.QueryTable("dgateway_tx_statistics").Filter("time__gte", startTime).Filter("time__lte", endTime).All(&info)
 	if err != nil {
 		beego.Error(err)
 		return nil, err
