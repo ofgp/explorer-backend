@@ -11,6 +11,7 @@ import (
 	"dgatewayWebBrowser/dboperation"
 	"dgatewayWebBrowser/models"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -147,11 +148,16 @@ func (cw *ChainWatcher) processBlockData(blockData *datastruct.SingleBlockResp) 
 
 		//获取"转入链FromAddr"
 		fromAddrString := ""
+		fmt.Println("from: ", tx.From)
 		if tx.From == "btc" || tx.From == "bch" {
 			fromAddrString, _ = cw.esClient.GetBtcTxFrom(tx.FromTxHash, tx.From)
-		} else if tx.From == "eos" || tx.From == "xin" {
+		} else if tx.From == "xin" {
 			// xinplayer的熔币交易，方法名为destorytoken
 			fromAddrString, _ = cw.esClient.GetEosDestoryTokenTxFrom(tx.FromTxHash)
+		} else if tx.From == "eos" {
+			fmt.Println("in EOS......")
+			// eos链上的交易
+			fromAddrString, _ = cw.esClient.GetEosTransferTxFrom(tx.FromTxHash)
 		} else {
 			fromAddrString, _ = chainapi.GetEthTxFrom(tx.FromTxHash)
 		}
@@ -197,7 +203,7 @@ func (cw *ChainWatcher) processBlockData(blockData *datastruct.SingleBlockResp) 
 
 //根据交易信息获取amount对应的token symbol 和decimals,
 //如果eth的token信息获取不到，则从链上抓取，并且更新到mysql
-//bch对应主链:token_code, eos,eth对应侧链: app_code
+//bch, btc, eos对应主链:token_code, xin,eth对应侧链: app_code
 func getTokenSymbolAndDecimals(tx datastruct.Transaction, chain string) (string, int) {
 	if chain == "from" {
 		if tx.From == "eth" {
@@ -209,7 +215,7 @@ func getTokenSymbolAndDecimals(tx datastruct.Transaction, chain string) (string,
 			} else {
 				return tokenInfo.Symbol, tokenInfo.Decimals
 			}
-		} else if tx.From == "eos" || tx.From == "xin" {
+		} else if tx.From == "xin" {
 			tokenInfo, err := dboperation.GetTokenInfo(tx.From, tx.AppCode)
 			if err != nil {
 				panic("get token info failed")
@@ -232,7 +238,7 @@ func getTokenSymbolAndDecimals(tx datastruct.Transaction, chain string) (string,
 			} else {
 				return tokenInfo.Symbol, tokenInfo.Decimals
 			}
-		} else if tx.To == "eos" || tx.To == "xin" {
+		} else if tx.To == "xin" {
 			tokenInfo, err := dboperation.GetTokenInfo(tx.To, tx.AppCode)
 			if err != nil {
 				panic("get token info failed")

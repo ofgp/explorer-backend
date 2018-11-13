@@ -4,7 +4,6 @@ import (
 	"dgatewayWebBrowser/chainapi"
 	"dgatewayWebBrowser/datastruct"
 	"dgatewayWebBrowser/dboperation"
-	"dgatewayWebBrowser/utils"
 	"strconv"
 	"time"
 
@@ -153,7 +152,10 @@ func GetInfoTableData() (*datastruct.InfoTableResp, error) {
 	count := []int64{}
 	amount := []float64{}
 	amountUSD := []float64{}
-	exchangeRate := utils.CNYToUSD()
+	exchangeRate, err := chainapi.CNYToUSD()
+	if err != nil {
+		beego.Critical("get exchange rate failed", err)
+	}
 	for _, info := range timeinfo {
 		month := strconv.Itoa(int(info.Month()))
 		day := strconv.Itoa(info.Day())

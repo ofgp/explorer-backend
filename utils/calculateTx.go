@@ -75,15 +75,19 @@ var calcTxstatics = toolbox.TaskFunc(func() error {
 			currencyDecimals = tokenInfo.Decimals
 		}
 		currencyAmount := float64(0)
-		if tokenInfo.Chain == "eos" && tokenInfo.Symbol == "XIN" {
-			//get USDToCNYPrice, not a good practice
-			USDprice := chainapi.GetTokenCurrencyPrice("BTC", "USD")
-			CNYPrice := chainapi.GetTokenCurrencyPrice("BTC", "CNY")
-			USDToCNYPrice := CNYPrice / USDprice
+		if tokenInfo.Chain == "xin" && tokenInfo.Symbol == "XIN" {
+
+			USDToCNYPrice, err := chainapi.USDToCNY()
+			if err != nil {
+				beego.Critical("get exchange rate failed", err)
+			}
 			//eos XIN coin's exchange rate: 1USD: 1000XIN
 			currencyAmount = float64(tokenAmount) / 1000 * USDToCNYPrice
 		} else {
-			price := chainapi.GetTokenCurrencyPrice(currencySymbol, "CNY")
+			price, err := chainapi.GetTokenCurrencyPrice(currencySymbol, "CNY")
+			if err != nil {
+				beego.Critical("get token price failed", err)
+			}
 			currencyAmount = price * float64(tokenAmount) / float64(power(currencyDecimals))
 		}
 		//新增数据

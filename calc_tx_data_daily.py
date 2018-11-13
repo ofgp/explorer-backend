@@ -59,7 +59,7 @@ def calc_tx_amount_count(start_time, end_time):
                 symbol = token_info[0]
                 decimals = token_info[1]
 
-            if token_info[0] == "eos" and token_info[1] == "XIN":
+            if token_info[0] == "xin" and token_info[1] == "XIN":
                 usd_price = get_currency_price("BTC", "USD")
                 cny_price = get_currency_price("BTC", "CNY")
                 # eos私链的XIN币和美元的兑换比例是1000：1
