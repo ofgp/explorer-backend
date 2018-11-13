@@ -237,11 +237,19 @@ func (ec *EsClient) GetEosDestoryTokenTxFrom(txHash string) (string, error) {
 	addrList := []string{}
 	for _, action := range eosTx.Actions {
 		if action.Name == "destroytoken" {
+			// destorytoken params was stored in string
+			var raw string
+			err1 := json.Unmarshal([]byte(action.Data), &raw)
+			if err1 != nil {
+				beego.Error(err1)
+				return "", err
+			}
 			destoryTokenParams := &DestoryTokenParams{}
-			err := json.Unmarshal(action.Data, destoryTokenParams)
+
+			err := json.Unmarshal([]byte(raw), destoryTokenParams)
 			if err != nil {
 				beego.Error(err)
-				continue
+				return "", err
 			}
 			addrList = append(addrList, destoryTokenParams.User)
 		}

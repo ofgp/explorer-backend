@@ -11,7 +11,6 @@ import (
 	"dgatewayWebBrowser/dboperation"
 	"dgatewayWebBrowser/models"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -148,14 +147,12 @@ func (cw *ChainWatcher) processBlockData(blockData *datastruct.SingleBlockResp) 
 
 		//获取"转入链FromAddr"
 		fromAddrString := ""
-		fmt.Println("from: ", tx.From)
 		if tx.From == "btc" || tx.From == "bch" {
 			fromAddrString, _ = cw.esClient.GetBtcTxFrom(tx.FromTxHash, tx.From)
 		} else if tx.From == "xin" {
 			// xinplayer的熔币交易，方法名为destorytoken
 			fromAddrString, _ = cw.esClient.GetEosDestoryTokenTxFrom(tx.FromTxHash)
 		} else if tx.From == "eos" {
-			fmt.Println("in EOS......")
 			// eos链上的交易
 			fromAddrString, _ = cw.esClient.GetEosTransferTxFrom(tx.FromTxHash)
 		} else {
