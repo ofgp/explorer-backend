@@ -66,7 +66,7 @@ func (cw *ChainWatcher) WatchBlock() {
 			blockHeight := chainapi.GetHighestBlockHeight()
 			beego.Info("highestBlock:", blockHeight)
 			cw.HighestBlock = blockHeight
-			if blockHeight <= cw.ScanHeight {
+			if blockHeight < cw.ScanHeight {
 				time.Sleep(time.Duration(10) * time.Second)
 				continue
 			}
